@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Toko Kopi Sembilan</title>
+<link rel="icon" type="image/jpeg" href="logo.jpg">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css?v=1.4">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/bcryptjs@2.4.3/dist/bcrypt.min.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════
+     FRAME 1: LOGIN
+═══════════════════════════════════════════ -->
+<div id="frame-login" class="frame active">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="logo-icon">
+        <img src="logo.jpg" alt="Logo" style="width: 100%; height: 100%; object-fit: cover; border-radius: 16px;">
+      </div>
+      <h1>Toko Kopi Sembilan</h1>
+      <p>Sistem Manajemen Kasir</p>
+    </div>
+    
+    <div class="form-group">
+      <label>Username</label>
+      <input type="text" class="form-input" id="login-user" placeholder="Masukkan username">
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" class="form-input" id="login-pass" placeholder="Masukkan password">
+    </div>
+    <button class="btn-primary" onclick="doLogin()">Masuk ke Sistem</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     FRAME 2–10: MAIN APP (Admin)
+═══════════════════════════════════════════ -->
+<div id="frame-app" class="frame">
+  <!-- Sidebar Overlay (mobile) -->
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo" style="display:flex; align-items:center; gap:12px;">
+      <img src="logo.jpg" alt="Logo" style="width:36px; height:36px; border-radius:8px; object-fit:cover; flex-shrink:0; box-shadow: 0 2px 8px rgba(184, 118, 58, 0.3);">
+      <div style="display:flex; flex-direction:column;">
+        <span style="font-weight:700; letter-spacing:-0.2px;">Kopi Sembilan</span>
+        <small id="sidebar-role-label" style="opacity:0.7; font-size:10px; text-transform:uppercase; letter-spacing:0.5px;">Admin Panel</small>
+      </div>
+    </div>
+
+    <!-- Admin menu -->
+    <div id="admin-menu">
+      <div class="nav-section">Utama</div>
+      <div class="nav-item active" onclick="showPage('dashboard')">
+        <i data-lucide="layout-dashboard" class="nav-icon"></i> Dashboard
+      </div>
+      <div class="nav-item" onclick="showPage('cashier')">
+        <i data-lucide="shopping-cart" class="nav-icon"></i> Kasir
+      </div>
+      <div class="nav-section">Manajemen</div>
+      <div class="nav-item" onclick="showPage('inventory')">
+        <i data-lucide="package" class="nav-icon"></i> Inventaris Produk
+      </div>
+      <div class="nav-item" onclick="showPage('report')">
+        <i data-lucide="bar-chart-3" class="nav-icon"></i> Laporan Keuangan
+      </div>
+      <div class="nav-section">Sistem</div>
+      <div class="nav-item" onclick="showPage('users')">
+        <i data-lucide="users" class="nav-icon"></i> Pengguna
+      </div>
+      <div class="nav-item" onclick="showPage('settings')">
+        <i data-lucide="settings" class="nav-icon"></i> Pengaturan
+      </div>
+      <div class="nav-item" onclick="showPage('manual')">
+        <i data-lucide="help-circle" class="nav-icon"></i> Panduan Pengguna
+      </div>
+      <div class="nav-item" onclick="showPage('logs')">
+        <i data-lucide="clipboard-list" class="nav-icon"></i> Log Aktivitas
+      </div>
+    </div>
+
+    <!-- Kasir menu -->
+    <div id="kasir-menu" class="hidden">
+      <div class="nav-section">Kasir</div>
+      <div class="nav-item active" onclick="showPage('cashier')">
+        <i data-lucide="shopping-cart" class="nav-icon"></i> Kasir
+      </div>
+      <div class="nav-item" onclick="showPage('report')">
+        <i data-lucide="bar-chart-3" class="nav-icon"></i> Laporan Hari Ini
+      </div>
+      <div class="nav-item" onclick="showPage('logs')">
+        <i data-lucide="clipboard-list" class="nav-icon"></i> Log Aktivitas
+      </div>
+      <div class="nav-item" onclick="showPage('manual')">
+        <i data-lucide="help-circle" class="nav-icon"></i> Panduan Pengguna
+      </div>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="user-badge">
+        <div class="user-avatar" id="user-avatar">A</div>
+        <div class="user-info">
+          <div class="name" id="user-display-name">Admin</div>
+          <div class="role" id="user-display-role">Administrator</div>
+        </div>
+        <button class="logout-btn" style="display:flex;align-items:center;justify-content:center;" onclick="doLogout()" title="Keluar"><i data-lucide="log-out" style="width:16px;height:16px;"></i></button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <div class="top-bar">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <button class="hamburger" id="hamburger-btn" style="display:flex;align-items:center;" onclick="toggleSidebar()"><i data-lucide="menu" style="width:24px;height:24px;"></i></button>
+        <h2 id="page-title">Dashboard</h2>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:12px;color:var(--text-muted);" id="current-datetime"></span>
+      </div>
+    </div>
+
+    <div class="page-content fade-in-up" id="page-content">
+      <!-- Dynamic content here -->
+    </div>
+  </main>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     MODALS
+═══════════════════════════════════════════ -->
+
+<!-- Variant Modal -->
+<div class="modal-overlay" id="modal-variant">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="variant-product-name">Americano</h3>
+      <button class="modal-close" style="display:flex;align-items:center;justify-content:center;" onclick="closeModal('modal-variant')"><i data-lucide="x" style="width:20px;height:20px;"></i></button>
+    </div>
+    <div class="modal-body" id="variant-modal-body">
+      <!-- Dynamic variants injected here -->
+    </div>
+    <div style="padding: 0 24px 16px;">
+      <div class="form-group">
+        <label>Catatan Item</label>
+        <input type="text" class="form-input" id="item-note" placeholder="Contoh: Less Sugar, No Ice...">
+        <div class="note-shortcuts" style="display:flex; flex-wrap:wrap; gap:8px; margin-top:12px;">
+          <button class="shortcut-chip" onclick="addNoteShortcut('Less Sugar', 'item-note')">Less Sugar</button>
+          <button class="shortcut-chip" onclick="addNoteShortcut('Normal Sugar', 'item-note')">Normal Sugar</button>
+          <button class="shortcut-chip" onclick="addNoteShortcut('No Sugar', 'item-note')">No Sugar</button>
+          <button class="shortcut-chip" onclick="addNoteShortcut('Less Ice', 'item-note')">Less Ice</button>
+          <button class="shortcut-chip" onclick="addNoteShortcut('Normal Ice', 'item-note')">Normal Ice</button>
+          <button class="shortcut-chip" onclick="addNoteShortcut('More Ice', 'item-note')">More Ice</button>
+          <button class="shortcut-chip" onclick="addNoteShortcut('No Ice', 'item-note')">No Ice</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-variant')">Batal</button>
+      <button class="btn btn-brown" id="add-to-cart-confirm">Tambahkan ke Keranjang</button>
+    </div>
+  </div>
+</div>
+
+<!-- Payment Modal -->
+<div class="modal-overlay" id="modal-payment">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 style="display:flex;align-items:center;gap:8px;"><i data-lucide="credit-card" style="width:20px;height:20px;color:var(--brown-800);"></i> Pembayaran</h3>
+      <button class="modal-close" style="display:flex;align-items:center;justify-content:center;" onclick="closeModal('modal-payment')"><i data-lucide="x" style="width:20px;height:20px;"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="receipt" id="receipt-preview"></div>
+      
+      <div style="margin-top:20px;">
+        <label style="font-size:12px; font-weight:600; color:var(--text-muted); text-transform:uppercase; margin-bottom:10px; display:block;">Metode Pembayaran</label>
+        <div class="payment-methods-grid">
+          <div class="pay-method-card active" data-method="cash" onclick="selectPayMethod(this)">
+            <i data-lucide="banknote" class="pay-icon"></i>
+            <span class="pay-label">Tunai</span>
+          </div>
+          <div class="pay-method-card" data-method="qris" onclick="selectPayMethod(this)">
+            <i data-lucide="qr-code" class="pay-icon"></i>
+            <span class="pay-label">QRIS</span>
+          </div>
+          <div class="pay-method-card" data-method="transfer" onclick="selectPayMethod(this)">
+            <i data-lucide="arrow-right-left" class="pay-icon"></i>
+            <span class="pay-label">Transfer</span>
+          </div>
+          <div class="pay-method-card" data-method="card" onclick="selectPayMethod(this)">
+            <i data-lucide="credit-card" class="pay-icon"></i>
+            <span class="pay-label">Kartu</span>
+          </div>
+        </div>
+
+        <div class="payment-form-grid" style="margin-top:20px; display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+          <div class="form-group" id="phone-input-group" style="display:none;">
+            <label>No. WhatsApp Pelanggan</label>
+            <input type="text" class="form-input" id="customer-phone" placeholder="08xxxxxx">
+          </div>
+          <div class="form-group">
+            <label>Status Pembayaran</label>
+            <select class="form-select" id="payment-status">
+              <option value="Lunas">Lunas</option>
+              <option value="Belum Bayar">Belum Bayar</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Catatan Transaksi</label>
+          <input type="text" class="form-input" id="txn-note" placeholder="Catatan tambahan untuk transaksi ini...">
+        </div>
+
+        <div id="cash-input-wrap" class="form-group">
+          <label>Jumlah Dibayar (Tunai)</label>
+          <input type="text" inputmode="numeric" class="form-input" id="cash-input" placeholder="0" oninput="formatPriceInput(this); calcChange();">
+          <div class="quick-cash-container" id="quick-cash-list"></div>
+        </div>
+
+        <div id="change-display" style="padding:12px;background:var(--green-light);border-radius:8px;display:none; margin-top:10px;">
+          <div style="display:flex;justify-content:space-between;">
+            <span style="color:var(--green);font-weight:600;">Kembalian:</span>
+            <span style="color:var(--green);font-weight:700;font-size:18px;" id="change-amount">Rp 0</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-payment')">Batal</button>
+      <button class="btn btn-green w-full" style="display:flex; align-items:center; justify-content:center; gap:8px;" onclick="confirmPayment()"><i data-lucide="check-circle" style="width:18px;height:18px;"></i> Selesaikan & Kirim WA</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Nominal Uang Kustom -->
+<div class="modal-overlay modal-overlay-center" id="modal-denom-kustom">
+  <div class="modal" style="max-width:320px;">
+    <div class="modal-header">
+      <h3 style="display:flex;align-items:center;gap:8px;"><i data-lucide="plus-circle" style="width:20px;height:20px;color:var(--brown-800);"></i> Pecahan Kustom</h3>
+      <button class="modal-close" style="display:flex;align-items:center;justify-content:center;" onclick="closeModal('modal-denom-kustom')"><i data-lucide="x" style="width:20px;height:20px;"></i></button>
+    </div>
+    <div class="modal-body" style="padding-top:10px;">
+      <div class="form-group">
+        <label style="font-size:12px; font-weight:600; color:var(--text-muted); text-transform:uppercase; margin-bottom:8px; display:block;">Nominal Uang Baru (Rupiah)</label>
+        <input type="text" inputmode="numeric" class="form-input" id="denom-kustom-input" placeholder="Contoh: 75.000" oninput="formatPriceInput(this)">
+      </div>
+    </div>
+    <div class="modal-footer" style="display:flex; gap:10px; margin-top:10px;">
+      <button class="btn btn-outline" style="flex:1;" onclick="closeModal('modal-denom-kustom')">Batal</button>
+      <button class="btn btn-brown" style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px;" onclick="submitCustomDenomination()">
+        <i data-lucide="plus" style="width:16px;height:16px;"></i> Simpan
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Product Modal -->
+<div class="modal-overlay" id="modal-product">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modal-product-title">Tambah Produk</h3>
+      <button class="modal-close" style="display:flex;align-items:center;justify-content:center;" onclick="closeModal('modal-product')"><i data-lucide="x" style="width:20px;height:20px;"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Nama Produk</label>
+        <input type="text" class="form-input" id="prod-name" placeholder="Nama produk">
+      </div>
+      <div class="form-group">
+        <label>Harga Dasar (Rp)</label>
+        <input type="text" inputmode="numeric" class="form-input" id="prod-price" placeholder="0" oninput="formatPriceInput(this)">
+      </div>
+      <div class="form-group">
+        <label>Kategori</label>
+        <select class="form-select" id="prod-category">
+          <option>Specialty Coffee</option>
+          <option>Regular Coffee</option>
+          <option>Non-Coffee</option>
+          <option>Signature</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-product')">Batal</button>
+      <button class="btn btn-brown" onclick="saveProduct()">Simpan Produk</button>
+    </div>
+  </div>
+</div>
+
+<!-- User Modal -->
+<div class="modal-overlay" id="modal-user">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modal-user-title">Tambah Pengguna</h3>
+      <button class="modal-close" style="display:flex;align-items:center;justify-content:center;" onclick="closeModal('modal-user')"><i data-lucide="x" style="width:20px;height:20px;"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Nama Lengkap</label>
+        <input type="text" class="form-input" id="user-fullname" placeholder="Nama lengkap">
+      </div>
+      <div class="form-group">
+        <label>Username</label>
+        <input type="text" class="form-input" id="user-username" placeholder="Username">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" class="form-input" id="user-password" placeholder="Password">
+      </div>
+      <div class="form-group">
+        <label>Role</label>
+        <select class="form-select" id="user-role">
+          <option value="admin">Admin</option>
+          <option value="kasir">Kasir</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+          <input type="checkbox" id="user-active" checked> Status Aktif
+        </label>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-user')">Batal</button>
+      <button class="btn btn-brown" onclick="saveUser()">Simpan Akun</button>
+    </div>
+  </div>
+</div>
+
+<!-- Phone Input Modal -->
+<div class="modal-overlay modal-overlay-center" id="modal-phone">
+  <div class="modal" style="max-width:400px;">
+    <div class="modal-header">
+      <h3 style="display:flex;align-items:center;gap:8px;"><i data-lucide="phone" style="width:20px;height:20px;color:var(--brown-800);"></i> Kirim Struk WhatsApp</h3>
+      <button class="modal-close" style="display:flex;align-items:center;justify-content:center;" onclick="closeModal('modal-phone')"><i data-lucide="x" style="width:20px;height:20px;"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Nomor WhatsApp Pelanggan</label>
+        <input type="text" class="form-input" id="phone-modal-input" placeholder="Contoh: 08123456789">
+        <p style="font-size:11px; color:var(--text-muted); margin-top:8px;">Struk akan dikirimkan ke nomor ini melalui WhatsApp.</p>
+      </div>
+    </div>
+    <div class="modal-footer" style="flex-direction:column; gap:10px; padding-top:10px;">
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; width:100%;">
+        <button class="btn btn-green" style="display:flex; align-items:center; justify-content:center; gap:6px; padding:12px 6px; font-size:13px;" onclick="processPhoneAction('image')">
+          <i data-lucide="image" style="width:16px;height:16px;"></i> Kirim Gambar
+        </button>
+        <button class="btn btn-blue" style="display:flex; align-items:center; justify-content:center; gap:6px; padding:12px 6px; font-size:13px;" onclick="processPhoneAction('text')">
+          <i data-lucide="message-square" style="width:16px;height:16px;"></i> Kirim Teks
+        </button>
+      </div>
+      <div style="display:flex; gap:10px; width:100%;">
+        <button class="btn btn-outline" style="flex:1;" onclick="closeModal('modal-phone')">Batal</button>
+        <button class="btn btn-brown" style="flex:1;" onclick="processPhoneAction('none')">Lewati & Selesai</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Note Modal -->
+<div class="modal-overlay" id="modal-note">
+  <div class="modal" style="max-width:400px;">
+    <div class="modal-header">
+      <h3 id="modal-note-title">Catatan Produk</h3>
+      <button class="modal-close" style="display:flex;align-items:center;justify-content:center;" onclick="closeModal('modal-note')"><i data-lucide="x" style="width:20px;height:20px;"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label id="note-item-label">Catatan untuk produk</label>
+        <textarea class="form-input" id="note-input" rows="3" placeholder="Contoh: Less Sugar, No Ice..." style="resize:none;"></textarea>
+        <div class="note-shortcuts" style="display:flex; flex-wrap:wrap; gap:8px; margin-top:12px;">
+          <button class="shortcut-chip" onclick="addNoteShortcut('Less Sugar')">Less Sugar</button>
+          <button class="shortcut-chip" onclick="addNoteShortcut('Normal Sugar')">Normal Sugar</button>
+          <button class="shortcut-chip" onclick="addNoteShortcut('No Sugar')">No Sugar</button>
+          <button class="shortcut-chip" onclick="addNoteShortcut('Less Ice')">Less Ice</button>
+          <button class="shortcut-chip" onclick="addNoteShortcut('Normal Ice')">Normal Ice</button>
+          <button class="shortcut-chip" onclick="addNoteShortcut('More Ice')">More Ice</button>
+          <button class="shortcut-chip" onclick="addNoteShortcut('No Ice')">No Ice</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-note')">Batal</button>
+      <button class="btn btn-brown" id="note-save-btn">Simpan Catatan</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Edit Transaksi -->
+<div class="modal-overlay" id="modal-edit-txn">
+  <div class="modal">
+    <div class="modal-header">
+      <h3><i data-lucide="edit-2" style="width:20px;height:20px;color:var(--brown-800);"></i> Edit Transaksi</h3>
+      <button class="modal-close" style="display:flex;align-items:center;justify-content:center;" onclick="closeModal('modal-edit-txn')"><i data-lucide="x" style="width:20px;height:20px;"></i></button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="edit-txn-id">
+      <div class="form-group">
+        <label>ID Transaksi</label>
+        <input type="text" class="form-input" id="edit-txn-id-display" disabled>
+      </div>
+      <div class="form-group">
+        <label>WhatsApp Pelanggan</label>
+        <input type="text" class="form-input" id="edit-txn-phone" placeholder="Contoh: 08123456789">
+      </div>
+      <div class="form-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+        <div class="form-group">
+          <label>Metode Pembayaran</label>
+          <select class="select-input" id="edit-txn-method">
+            <option value="cash">Tunai</option>
+            <option value="qris">QRIS</option>
+            <option value="transfer">Transfer</option>
+            <option value="card">Debit Card</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Status Pembayaran</label>
+          <select class="select-input" id="edit-txn-status" onchange="toggleEditCashInput()">
+            <option value="Lunas">Lunas</option>
+            <option value="Belum Bayar">Belum Bayar</option>
+          </select>
+        </div>
+      </div>
+      
+      <div id="edit-cash-input-wrap" class="form-group" style="display:none;">
+        <label>Jumlah Dibayar (Tunai)</label>
+        <input type="text" inputmode="numeric" class="form-input" id="edit-txn-cash-input" placeholder="0" oninput="formatPriceInput(this); calcEditChange();">
+      </div>
+
+      <div id="edit-change-display" style="padding:12px;background:var(--green-light);border-radius:8px;display:none; margin-top:10px;">
+        <div style="display:flex;justify-content:space-between;">
+          <span style="color:var(--green);font-weight:600;">Kembalian:</span>
+          <span style="color:var(--green);font-weight:700;font-size:18px;" id="edit-txn-change-amount">Rp 0</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Catatan Transaksi</label>
+        <textarea class="form-input" id="edit-txn-notes" rows="2" style="resize:none;"></textarea>
+      </div>
+      <div style="background:var(--brown-800); color:white; padding:15px; border-radius:12px; margin-top:20px; display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-size:12px; font-weight:600; text-transform:uppercase; opacity:0.8;">Total Transaksi Baru</span>
+        <span id="edit-txn-total-display" style="font-size:20px; font-weight:700;">Rp 0</span>
+      </div>
+
+      <div class="order-edit-section" style="margin-top:20px; border-top:1px solid var(--border); padding-top:16px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <label style="font-weight:600; margin-bottom:0;">Daftar Pesanan</label>
+          <button class="btn btn-outline btn-sm" onclick="loadTransactionToCashier()" style="display:flex; align-items:center; gap:6px;">
+            <i data-lucide="plus-circle" style="width:14px;height:14px;"></i> Tambah Menu di Kasir
+          </button>
+        </div>
+        <div id="edit-txn-items-list" style="display:flex; flex-direction:column; gap:8px;">
+          <!-- Items will be injected here -->
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-edit-txn')">Batal</button>
+      <button class="btn btn-brown" onclick="saveTransactionEdit()">Simpan Perubahan</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast Container -->
+<div class="toast-container" id="toast-container"></div>
+
+<!-- Confirm Modal -->
+<div class="modal-overlay" id="modal-confirm">
+  <div class="modal confirm-modal">
+    <div class="confirm-icon">
+      <i data-lucide="log-out" style="width:24px;height:24px;"></i>
+    </div>
+    <div class="confirm-content">
+      <h3 id="confirm-title">Konfirmasi</h3>
+      <p id="confirm-message">Apakah Anda yakin?</p>
+    </div>
+    <div class="confirm-actions">
+      <button class="btn btn-outline" id="confirm-cancel">Batal</button>
+      <button class="btn btn-brown" id="confirm-ok">Ya, Lanjutkan</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Kategori -->
+<div class="modal-overlay" id="modal-category">
+  <div class="modal" style="max-width:400px;">
+    <div class="modal-header">
+      <h3 id="modal-category-title">Kelola Kategori</h3>
+      <button class="modal-close" onclick="closeModal('modal-category')"><i data-lucide="x" style="width:20px;height:20px;"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Nama Kategori</label>
+        <input type="text" class="form-input" id="cat-name" placeholder="Misal: Snack">
+      </div>
+      <div class="form-group">
+        <label>Warna Tombol</label>
+        <input type="color" class="form-input" id="cat-color" value="#6B3F1A" style="height:40px; padding:2px;">
+      </div>
+      <div class="form-group">
+        <label>Ikon (Nama Lucide)</label>
+        <input type="text" class="form-input" id="cat-icon" value="coffee" placeholder="Misal: coffee, utencils, pizza">
+        <p style="font-size:10px; color:var(--text-muted); margin-top:4px;">Cari nama ikon di lucide.dev</p>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-category')">Batal</button>
+      <button class="btn btn-brown" onclick="saveCategory()">Simpan Kategori</button>
+    </div>
+  </div>
+</div>
+
+<!-- Changelog (Pembaruan) Modal -->
+<div class="modal-overlay" id="modal-changelog">
+  <div class="modal" style="max-width:450px;">
+    <div class="modal-header" style="background:var(--brown-900); color:white; border-radius:16px 16px 0 0; padding:20px 24px;">
+      <h3 style="display:flex;align-items:center;gap:10px;color:white;"><i data-lucide="sparkles" style="width:22px;height:22px;color:var(--accent);"></i> Pembaruan Aplikasi v1.3</h3>
+      <button class="modal-close" style="display:flex;align-items:center;justify-content:center;color:white;opacity:0.8;" onclick="closeModal('modal-changelog')"><i data-lucide="x" style="width:20px;height:20px;"></i></button>
+    </div>
+    <div class="modal-body" style="padding:24px;">
+      <p style="font-size:13px; color:var(--text-muted); margin-bottom:20px; line-height:1.5;">Berikut adalah daftar fitur baru dan peningkatan keamanan yang telah berhasil dipasang pada sistem kasir Kopi Sembilan Anda:</p>
+      
+      <div style="display:flex; flex-direction:column; gap:16px;">
+        <div style="display:flex; gap:12px;">
+          <div style="width:32px; height:32px; border-radius:50%; background:var(--brown-100); color:var(--brown-700); display:flex; align-items:center; justify-content:center; font-weight:700; flex-shrink:0; font-size:14px;">1</div>
+          <div>
+            <h4 style="color:var(--brown-900); font-size:13px; font-weight:700; margin-bottom:4px; display:flex; align-items:center; gap:6px;">
+              <i data-lucide="calendar" style="width:16px;height:16px;color:var(--brown-700);"></i> Filter Laporan Rentang Tanggal
+            </h4>
+            <p style="font-size:12px; color:var(--text-muted); line-height:1.5; margin:0;">Kasir dapat memilih Mulai Tanggal dan Akhir Tanggal terpisah untuk memfilter laporan penjualan secara harian, mingguan, atau bulanan secara presisi untuk diunduh (Export CSV).</p>
+          </div>
+        </div>
+        
+        <div style="display:flex; gap:12px;">
+          <div style="width:32px; height:32px; border-radius:50%; background:var(--brown-100); color:var(--brown-700); display:flex; align-items:center; justify-content:center; font-weight:700; flex-shrink:0; font-size:14px;">2</div>
+          <div>
+            <h4 style="color:var(--brown-900); font-size:13px; font-weight:700; margin-bottom:4px; display:flex; align-items:center; gap:6px;">
+              <i data-lucide="bar-chart-2" style="width:16px;height:16px;color:var(--brown-700);"></i> Pengurutan Data Laporan (Sorting)
+            </h4>
+            <p style="font-size:12px; color:var(--text-muted); line-height:1.5; margin:0;">Mengurutkan tabel laporan penjualan secara langsung dengan mengklik judul kolom Waktu (terbaru ↔ terlama) atau Total (terbesar ↔ terkecil) dengan indikator panah dinamis.</p>
+          </div>
+        </div>
+        
+        <div style="display:flex; gap:12px;">
+          <div style="width:32px; height:32px; border-radius:50%; background:var(--brown-100); color:var(--brown-700); display:flex; align-items:center; justify-content:center; font-weight:700; flex-shrink:0; font-size:14px;">3</div>
+          <div>
+            <h4 style="color:var(--brown-900); font-size:13px; font-weight:700; margin-bottom:4px; display:flex; align-items:center; gap:6px;">
+              <i data-lucide="shield" style="width:16px;height:16px;color:var(--brown-700);"></i> Proteksi Status Transaksi
+            </h4>
+            <p style="font-size:12px; color:var(--text-muted); line-height:1.5; margin:0;">Menambahkan sistem pengaman otomatis (fallback) agar status transaksi tidak pernah kosong di database jika terjadi glitch/gangguan pada cache browser kasir lama.</p>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:12px;">
+          <div style="width:32px; height:32px; border-radius:50%; background:var(--brown-100); color:var(--brown-700); display:flex; align-items:center; justify-content:center; font-weight:700; flex-shrink:0; font-size:14px;">4</div>
+          <div>
+            <h4 style="color:var(--brown-900); font-size:13px; font-weight:700; margin-bottom:4px; display:flex; align-items:center; gap:6px;">
+              <i data-lucide="cloud" style="width:16px;height:16px;color:var(--brown-700);"></i> Cadangan Laporan Otomatis (Google Drive)
+            </h4>
+            <p style="font-size:12px; color:var(--text-muted); line-height:1.5; margin:0;">Laporan keuangan bulanan Anda kini akan dicadangkan secara otomatis setiap awal bulan dalam format Google Sheets yang rapi, ber-filter, dan dilengkapi tab ringkasan langsung ke folder Google Drive Anda tanpa perlu menyalakan komputer kasir.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer" style="padding:16px 24px 20px; border-top:1px solid var(--border);">
+      <button class="btn btn-brown w-full" style="padding:12px; font-weight:700; font-size:14px; display:flex; align-items:center; justify-content:center; gap:8px;" onclick="closeModal('modal-changelog')">
+        <i data-lucide="coffee" style="width:16px;height:16px;"></i> Mengerti & Siap Melayani
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Analisis & Ranking Penjualan Menu Lengkap -->
+<div class="modal-overlay" id="modal-menu-sales">
+  <div class="modal">
+    <div class="modal-header">
+      <div style="display:flex; align-items:center; gap:10px; min-width:0;">
+        <div style="width:34px; height:34px; border-radius:10px; background:var(--brown-700); color:white; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+          <i data-lucide="award" style="width:18px;height:18px;"></i>
+        </div>
+        <div style="min-width:0;">
+          <h3 style="margin:0; font-size:16px; color:var(--brown-800); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Analisis Penjualan Menu</h3>
+          <p id="menu-sales-modal-subtitle" style="margin:0; font-size:11px; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Performa penjualan menu</p>
+        </div>
+      </div>
+      <button class="modal-close" style="display:flex; align-items:center; justify-content:center; background:white; border:1px solid var(--border); border-radius:50%; width:30px; height:30px; cursor:pointer; flex-shrink:0;" onclick="closeModal('modal-menu-sales')">
+        <i data-lucide="x" style="width:15px;height:15px;"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <!-- Filter Periode di dalam Modal -->
+      <div style="display:flex; align-items:center; gap:8px; background:var(--cream); padding:8px 12px; border-radius:10px; border:1px solid var(--border); flex-shrink:0;">
+        <div style="display:flex; align-items:center; gap:5px; flex-shrink:0;">
+          <i data-lucide="filter" style="width:14px;height:14px;color:var(--brown-700);"></i>
+          <span style="font-size:11px; font-weight:700; color:var(--brown-800);">PERIODE:</span>
+        </div>
+        <div class="period-tabs" id="menu-sales-period-tabs" style="display:flex; gap:4px; flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch; background:white; padding:2px; border-radius:8px; border:1px solid var(--border); flex:1; scrollbar-width:none;">
+          <button type="button" class="period-tab active" data-period="daily" style="flex:0 0 auto;" onclick="setMenuSalesModalPeriod('daily')">Hari Ini</button>
+          <button type="button" class="period-tab" data-period="weekly" style="flex:0 0 auto;" onclick="setMenuSalesModalPeriod('weekly')">Mingguan</button>
+          <button type="button" class="period-tab" data-period="monthly" style="flex:0 0 auto;" onclick="setMenuSalesModalPeriod('monthly')">Bulanan</button>
+          <button type="button" class="period-tab" data-period="yearly" style="flex:0 0 auto;" onclick="setMenuSalesModalPeriod('yearly')">Tahunan</button>
+          <button type="button" class="period-tab" data-period="all" style="flex:0 0 auto;" onclick="setMenuSalesModalPeriod('all')">Semua</button>
+        </div>
+      </div>
+
+      <!-- KPI Summary Cards -->
+      <div class="menu-sales-kpi-grid" id="menu-sales-kpi-summary">
+        <!-- Injected dynamically -->
+      </div>
+
+      <!-- Search & Sorting Controls -->
+      <div style="display:flex; flex-direction:column; gap:8px; flex-shrink:0;">
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <div style="position:relative; flex:1 1 180px; display:flex; align-items:center;">
+            <i data-lucide="search" style="position:absolute; left:10px; width:14px; height:14px; color:var(--text-muted); pointer-events:none;"></i>
+            <input type="text" id="menu-sales-search" class="form-input" placeholder="Cari nama menu..." style="padding-left:32px; font-size:12px; height:34px; border-radius:8px;" oninput="onMenuSalesFilterChange()">
+          </div>
+          <div style="display:flex; gap:4px; flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none;">
+            <button type="button" id="btn-sort-top" class="btn btn-sm btn-brown" style="font-size:11px; padding:4px 9px; border-radius:6px; flex:0 0 auto;" onclick="setMenuSalesSort('top')">
+              <i data-lucide="award" style="width:12px;height:12px;margin-right:3px;"></i> Terlaris
+            </button>
+            <button type="button" id="btn-sort-slow" class="btn btn-sm btn-outline" style="font-size:11px; padding:4px 9px; border-radius:6px; flex:0 0 auto;" onclick="setMenuSalesSort('slow')" title="Urutkan dari menu penjualan terendah">
+              <i data-lucide="trending-down" style="width:12px;height:12px;margin-right:3px;"></i> Terendah
+            </button>
+            <button type="button" id="btn-sort-revenue" class="btn btn-sm btn-outline" style="font-size:11px; padding:4px 9px; border-radius:6px; flex:0 0 auto;" onclick="setMenuSalesSort('revenue')">
+              <i data-lucide="dollar-sign" style="width:12px;height:12px;margin-right:3px;"></i> Omzet
+            </button>
+          </div>
+        </div>
+
+        <!-- Category Chips -->
+        <div id="menu-sales-category-chips" style="display:flex; gap:5px; overflow-x:auto; -webkit-overflow-scrolling:touch; padding-bottom:2px; flex-shrink:0; scrollbar-width:none;">
+          <!-- Injected dynamically -->
+        </div>
+      </div>
+
+      <!-- Menu Items List Container -->
+      <div id="menu-sales-items-list" style="background:white; border-radius:10px; border:1px solid var(--border); overflow:hidden; min-height:160px;">
+        <!-- Injected dynamically -->
+      </div>
+    </div>
+    <div class="modal-footer">
+      <div id="menu-sales-footer-count" style="font-size:11px; color:var(--text-muted);">
+        Menampilkan 0 menu
+      </div>
+      <button class="btn btn-brown" onclick="closeModal('modal-menu-sales')">Tutup</button>
+    </div>
+  </div>
+</div>
+
+<!-- Floating Action Button (FAB) untuk melihat Info Pembaruan -->
+<button id="btn-changelog-fab" onclick="openModal('modal-changelog')" title="Info Pembaruan v1.2" style="display: none !important;">
+  <i data-lucide="sparkles"></i>
+</button>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+<script src="js/supabase-config.js"></script>
+<script src="js/scripts.js?v=1.5"></script>
+</body>
+</html>

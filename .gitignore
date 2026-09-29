@@ -1,0 +1,12 @@
+# Kredensial dan API Key Sensitif
+js/supabase-config.js
+.env
+.env.*
+!.env.example
+
+# OS / Editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log
