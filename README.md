@@ -132,5 +132,4 @@ poskopi9/
 
 ---
 
-## 📄 Lisensi & Hak Cipta
-Dikembangkan untuk **Toko Kopi Sembilan**. Dikelola oleh **Nifail Eka Nafie** untuk keperluan praktikum & pengembangan sistem informasi Point of Sale.
+
