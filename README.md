@@ -6,13 +6,14 @@ Aplikasi kasir dan manajemen operasional kafe berbasis web (*Single Page Applica
 
 ## 📌 Daftar Isi
 - [Fitur Utama](#-fitur-utama)
-  - [1. Modul Kasir / POS](#1-modul-kasir--pos)
-  - [2. Dashboard & Analisis Bisnis (Admin)](#2-dashboard--analisis-bisnis-admin)
-  - [3. Manajemen Inventaris Menu](#3-manajemen-inventaris-menu)
-  - [4. Laporan Penjualan & Ekspor Excel](#4-laporan-penjualan--ekspor-excel)
-  - [5. Manajemen Akun Pengguna](#5-manajemen-akun-pengguna)
-  - [6. Pengaturan Toko & Printer Thermal](#6-pengaturan-toko--printer-thermal)
-  - [7. Audit Trail / Log Aktivitas](#7-audit-trail--log-aktivitas)
+  - [1. Autentikasi & Keamanan Akun](#1-autentikasi--keamanan-akun)
+  - [2. Modul Kasir / POS](#2-modul-kasir--pos)
+  - [3. Dashboard & Analisis Bisnis (Admin)](#3-dashboard--analisis-bisnis-admin)
+  - [4. Manajemen Inventaris Menu](#4-manajemen-inventaris-menu)
+  - [5. Laporan Penjualan & Ekspor Excel](#5-laporan-penjualan--ekspor-excel)
+  - [6. Manajemen Akun Pengguna](#6-manajemen-akun-pengguna)
+  - [7. Pengaturan Toko & Printer Thermal](#7-pengaturan-toko--printer-thermal)
+  - [8. Audit Trail / Log Aktivitas](#8-audit-trail--log-aktivitas)
 - [Teknologi yang Digunakan](#-teknologi-yang-digunakan)
 - [Panduan Instalasi & Menjalankan](#-panduan-instalasi--menjalankan)
 - [Konfigurasi Supabase Database](#-konfigurasi-supabase-database)
@@ -23,7 +24,12 @@ Aplikasi kasir dan manajemen operasional kafe berbasis web (*Single Page Applica
 
 ## ✨ Fitur Utama
 
-### 1. Modul Kasir / POS
+### 1. Autentikasi & Keamanan Akun
+* **Multi-Role Login:** Masuk sebagai Administrator (akses penuh) atau Kasir (layar transaksi & laporan harian).
+* **Registrasi Akun Baru (Register):** Pendaftaran mandiri untuk staf kasir baru dengan validasi keunikan username dan enkripsi kata sandi menggunakan hashing Bcrypt.
+* **Lupa Password (Password Recovery):** Fitur pemulihan dan pembaruan kata sandi mandiri (*self-service*) jika staf lupa kata sandi akunnya.
+
+### 2. Modul Kasir / POS
 * **Katalog Menu Interaktif:** Filter kategori dinamis (*Specialty Coffee, Regular Coffee, Signature, Non-Coffee*) dan pencarian instan.
 * **Kustomisasi Pesanan (Item Note):** Pilihan cepat modifikasi pesanan (*Less Sugar, No Ice, More Ice, dll.*) serta varian produk.
 * **Metode Pembayaran Lengkap:** Mendukung Tunai (Cash), QRIS, Transfer Bank, dan Kartu Debit.

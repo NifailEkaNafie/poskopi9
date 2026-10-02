@@ -134,6 +134,38 @@ function escapeAttr(value = '') {
 // ══════════════════════════════════════════════
 // AUTH
 // ══════════════════════════════════════════════
+function switchAuthView(view) {
+  const loginView = document.getElementById('auth-view-login');
+  const regView = document.getElementById('auth-view-register');
+  const forgotView = document.getElementById('auth-view-forgot');
+  const title = document.getElementById('auth-card-title');
+  const subtitle = document.getElementById('auth-card-subtitle');
+
+  if (loginView) loginView.style.display = 'none';
+  if (regView) regView.style.display = 'none';
+  if (forgotView) forgotView.style.display = 'none';
+
+  if (view === 'register') {
+    if (regView) regView.style.display = 'block';
+    if (title) title.textContent = 'Daftar Akun Baru';
+    if (subtitle) subtitle.textContent = 'Registrasi Staf Kopi Sembilan';
+    const regName = document.getElementById('reg-name');
+    if (regName) regName.focus();
+  } else if (view === 'forgot') {
+    if (forgotView) forgotView.style.display = 'block';
+    if (title) title.textContent = 'Lupa Password';
+    if (subtitle) subtitle.textContent = 'Pemulihan Kata Sandi Akun';
+    const forgotUser = document.getElementById('forgot-user');
+    if (forgotUser) forgotUser.focus();
+  } else {
+    if (loginView) loginView.style.display = 'block';
+    if (title) title.textContent = 'Toko Kopi Sembilan';
+    if (subtitle) subtitle.textContent = 'Sistem Manajemen Kasir';
+    const loginUser = document.getElementById('login-user');
+    if (loginUser) loginUser.focus();
+  }
+}
+
 async function doLogin() {
   const u = document.getElementById('login-user').value.trim();
   const p = document.getElementById('login-pass').value.trim();
@@ -164,8 +196,16 @@ async function doLogin() {
       .single();
 
     if (!dummyErr && dummyUser) {
+      // Verifikasi password jika user memiliki password_hash
+      if (dummyUser.password_hash && typeof dcodeIO !== 'undefined' && dcodeIO.bcrypt) {
+        const isMatch = dcodeIO.bcrypt.compareSync(p, dummyUser.password_hash);
+        if (!isMatch) {
+          showToast('Username atau Password salah!', 'error');
+          return;
+        }
+      }
       setupUserSession(dummyUser);
-      addActivityLog('Login Berhasil', `User ${dummyUser.name} masuk ke sistem (Demo Mode)`);
+      addActivityLog('Login Berhasil', `User ${dummyUser.name} masuk ke sistem`);
       showToast(`Login berhasil sebagai ${dummyUser.name}!`, 'success');
       return;
     }
@@ -208,6 +248,248 @@ async function doLogin() {
   } else {
     setupUserSession(userProfile);
     addActivityLog('Login Berhasil', `User ${userProfile.name} masuk ke sistem`);
+  }
+}
+
+async function doRegister() {
+  const name = document.getElementById('reg-name')?.value.trim();
+  const username = document.getElementById('reg-user')?.value.trim().toLowerCase();
+  const role = document.getElementById('reg-role')?.value || 'kasir';
+  const pass = document.getElementById('reg-pass')?.value.trim();
+  const passConfirm = document.getElementById('reg-pass-confirm')?.value.trim();
+
+  if (!name || !username || !pass || !passConfirm) {
+    showToast('Semua kolom wajib diisi!', 'error');
+    return;
+  }
+
+  if (username.length < 3) {
+    showToast('Username minimal 3 karakter!', 'error');
+    return;
+  }
+
+  if (pass.length < 4) {
+    showToast('Password minimal 4 karakter!', 'error');
+    return;
+  }
+
+  if (pass !== passConfirm) {
+    showToast('Konfirmasi password tidak cocok!', 'error');
+    return;
+  }
+
+  const btnRegister = document.getElementById('btn-do-register');
+  if (btnRegister) {
+    btnRegister.disabled = true;
+    btnRegister.textContent = 'Mendaftarkan...';
+  }
+
+  try {
+    // 1. Cek apakah username sudah dipakai
+    const { data: existingUser, error: checkErr } = await db
+      .from('users')
+      .select('id, username')
+      .eq('username', username)
+      .maybeSingle();
+
+    if (existingUser) {
+      showToast('Username sudah terdaftar! Gunakan username lain.', 'error');
+      if (btnRegister) {
+        btnRegister.disabled = false;
+        btnRegister.textContent = 'Daftar Sekarang';
+      }
+      return;
+    }
+
+    // 2. Hash password menggunakan bcrypt
+    let password_hash = null;
+    if (typeof dcodeIO !== 'undefined' && dcodeIO.bcrypt) {
+      const salt = dcodeIO.bcrypt.genSaltSync(10);
+      password_hash = dcodeIO.bcrypt.hashSync(pass, salt);
+    }
+
+    // 3. Simpan ke tabel users
+    const userData = {
+      name,
+      username,
+      role,
+      active: true,
+      password_hash
+    };
+
+    const { data: newUser, error: insertErr } = await db
+      .from('users')
+      .insert([userData])
+      .select()
+      .single();
+
+    if (insertErr) {
+      console.error('Register error:', insertErr);
+      showToast('Gagal mendaftar: ' + insertErr.message, 'error');
+      if (btnRegister) {
+        btnRegister.disabled = false;
+        btnRegister.textContent = 'Daftar Sekarang';
+      }
+      return;
+    }
+
+    // 4. Daftarkan juga ke Supabase Auth (jika diizinkan)
+    try {
+      const fakeEmail = `${username}@kopi9.local`;
+      const { data: authData } = await db.auth.signUp({
+        email: fakeEmail,
+        password: pass
+      });
+      if (authData?.user && newUser?.id) {
+        await db.from('users').update({ auth_id: authData.user.id }).eq('id', newUser.id);
+      }
+    } catch (e) {
+      console.log('Optional Supabase Auth signUp note:', e);
+    }
+
+    // 5. Catat log aktivitas jika tabel log tersedia
+    try {
+      await db.from('activity_logs').insert([{
+        user_name: name,
+        user_role: role,
+        action: 'Registrasi Akun Baru',
+        details: `User @${username} (${name}) berhasil mendaftar sebagai ${role.toUpperCase()}`
+      }]);
+    } catch (e) {}
+
+    showToast('Registrasi berhasil! Silakan masuk dengan akun baru Anda.', 'success');
+
+    // Reset form dan alihkan ke login view
+    document.getElementById('reg-name').value = '';
+    document.getElementById('reg-user').value = '';
+    document.getElementById('reg-pass').value = '';
+    document.getElementById('reg-pass-confirm').value = '';
+
+    switchAuthView('login');
+    const loginUserInput = document.getElementById('login-user');
+    if (loginUserInput) {
+      loginUserInput.value = username;
+      const loginPassInput = document.getElementById('login-pass');
+      if (loginPassInput) loginPassInput.focus();
+    }
+  } catch (err) {
+    console.error('doRegister fail:', err);
+    showToast('Terjadi kesalahan saat pendaftaran!', 'error');
+  } finally {
+    if (btnRegister) {
+      btnRegister.disabled = false;
+      btnRegister.textContent = 'Daftar Sekarang';
+    }
+  }
+}
+
+async function doResetPassword() {
+  const username = document.getElementById('forgot-user')?.value.trim().toLowerCase();
+  const newPass = document.getElementById('forgot-new-pass')?.value.trim();
+  const confirmPass = document.getElementById('forgot-confirm-pass')?.value.trim();
+
+  if (!username || !newPass || !confirmPass) {
+    showToast('Semua kolom wajib diisi!', 'error');
+    return;
+  }
+
+  if (newPass.length < 4) {
+    showToast('Password baru minimal 4 karakter!', 'error');
+    return;
+  }
+
+  if (newPass !== confirmPass) {
+    showToast('Konfirmasi password baru tidak cocok!', 'error');
+    return;
+  }
+
+  const btnReset = document.getElementById('btn-do-reset');
+  if (btnReset) {
+    btnReset.disabled = true;
+    btnReset.textContent = 'Memproses...';
+  }
+
+  try {
+    // 1. Periksa apakah user terdaftar di database
+    const { data: userRecord, error: userErr } = await db
+      .from('users')
+      .select('*')
+      .eq('username', username)
+      .maybeSingle();
+
+    if (userErr || !userRecord) {
+      showToast('Username tidak ditemukan di database!', 'error');
+      if (btnReset) {
+        btnReset.disabled = false;
+        btnReset.textContent = 'Perbarui Password';
+      }
+      return;
+    }
+
+    if (!userRecord.active) {
+      showToast('Akun ini dinonaktifkan. Hubungi Admin!', 'error');
+      if (btnReset) {
+        btnReset.disabled = false;
+        btnReset.textContent = 'Perbarui Password';
+      }
+      return;
+    }
+
+    // 2. Hash password baru
+    let password_hash = null;
+    if (typeof dcodeIO !== 'undefined' && dcodeIO.bcrypt) {
+      const salt = dcodeIO.bcrypt.genSaltSync(10);
+      password_hash = dcodeIO.bcrypt.hashSync(newPass, salt);
+    }
+
+    // 3. Update password di tabel users
+    const { error: updateErr } = await db
+      .from('users')
+      .update({ password_hash })
+      .eq('id', userRecord.id);
+
+    if (updateErr) {
+      showToast('Gagal mengubah password: ' + updateErr.message, 'error');
+      if (btnReset) {
+        btnReset.disabled = false;
+        btnReset.textContent = 'Perbarui Password';
+      }
+      return;
+    }
+
+    // 4. Catat aktivitas audit log
+    try {
+      await db.from('activity_logs').insert([{
+        user_id: userRecord.id,
+        user_name: userRecord.name,
+        user_role: userRecord.role,
+        action: 'Reset Password',
+        details: `User @${username} berhasil mereset dan memperbarui kata sandi`
+      }]);
+    } catch (e) {}
+
+    showToast('Password berhasil diperbarui! Silakan login dengan password baru.', 'success');
+
+    // Reset input dan kembali ke halaman login
+    document.getElementById('forgot-user').value = '';
+    document.getElementById('forgot-new-pass').value = '';
+    document.getElementById('forgot-confirm-pass').value = '';
+
+    switchAuthView('login');
+    const loginUserInput = document.getElementById('login-user');
+    if (loginUserInput) {
+      loginUserInput.value = username;
+      const loginPassInput = document.getElementById('login-pass');
+      if (loginPassInput) loginPassInput.focus();
+    }
+  } catch (err) {
+    console.error('doResetPassword fail:', err);
+    showToast('Terjadi kesalahan saat mereset password!', 'error');
+  } finally {
+    if (btnReset) {
+      btnReset.disabled = false;
+      btnReset.textContent = 'Perbarui Password';
+    }
   }
 }
 
@@ -301,7 +583,10 @@ async function performLogout() {
   const frameApp = document.getElementById('frame-app');
   const frameLogin = document.getElementById('frame-login');
   if (frameApp) frameApp.classList.remove('active');
-  if (frameLogin) frameLogin.classList.add('active');
+  if (frameLogin) {
+    frameLogin.classList.add('active');
+    switchAuthView('login');
+  }
 }
 
 // ══════════════════════════════════════════════
