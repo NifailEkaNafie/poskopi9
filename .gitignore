@@ -1,5 +1,5 @@
-# Kredensial dan API Key Sensitif
-js/supabase-config.js
+# Kredensial dan API Key Sensitif (diaktifkan untuk deployment Vercel)
+# js/supabase-config.js
 .env
 .env.*
 !.env.example
