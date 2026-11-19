@@ -1,0 +1,17 @@
+{
+  "name": "kopisembilan-pos",
+  "version": "1.0.0",
+  "description": "Cashier System UMKM Toko Kopi Sembilan - White-Box Testing Suite",
+  "main": "js/scripts.js",
+  "scripts": {
+    "test": "node --test --experimental-test-coverage tests/*.test.js"
+  },
+  "keywords": [
+    "pos",
+    "cashier",
+    "white-box-testing",
+    "unit-testing"
+  ],
+  "author": "Nifail Eka Nafie (NIM: 202310370311344)",
+  "license": "ISC"
+}
